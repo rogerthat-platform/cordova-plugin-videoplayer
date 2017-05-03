@@ -21,6 +21,8 @@ import android.view.WindowManager.LayoutParams;
 import android.widget.LinearLayout;
 import android.widget.VideoView;
 
+import com.mobicage.rogerthat.cordova.CordovaActionScreenActivity;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaArgs;
 import org.apache.cordova.CordovaPlugin;
@@ -34,6 +36,8 @@ public class VideoPlayer extends CordovaPlugin implements OnCompletionListener, 
     protected static final String LOG_TAG = "VideoPlayer";
 
     protected static final String ASSETS = "/android_asset/";
+
+    private CordovaActionScreenActivity mActivity = null;
 
     private CallbackContext callbackContext = null;
 
@@ -52,6 +56,9 @@ public class VideoPlayer extends CordovaPlugin implements OnCompletionListener, 
      * @return              A PluginResult object with a status and message.
      */
     public boolean execute(String action, CordovaArgs args, CallbackContext callbackContext) throws JSONException {
+        if (mActivity == null) {
+            mActivity = (CordovaActionScreenActivity) cordova.getActivity();
+        }
         if (action.equals("play")) {
             this.callbackContext = callbackContext;
 
@@ -60,16 +67,22 @@ public class VideoPlayer extends CordovaPlugin implements OnCompletionListener, 
             final JSONObject options = args.getJSONObject(1);
 
             String fileUriStr;
+            Uri targetUri = Uri.parse(target);
             try {
-                Uri targetUri = resourceApi.remapUri(Uri.parse(target));
-                fileUriStr = targetUri.toString();
+                Uri cleanTargetUri = resourceApi.remapUri(targetUri);
+                fileUriStr = cleanTargetUri.toString();
             } catch (IllegalArgumentException e) {
                 fileUriStr = target;
             }
 
             Log.v(LOG_TAG, fileUriStr);
 
-            final String path = stripFileProtocol(fileUriStr);
+            final String path;
+            if (targetUri.getScheme() == null) {
+                path = "file://" + mActivity.getBrandingResult().dir.getAbsolutePath() + "/" + target;
+            } else {
+                path = stripFileProtocol(fileUriStr);
+            }
 
             // Create dialog in new thread
             cordova.getActivity().runOnUiThread(new Runnable() {
